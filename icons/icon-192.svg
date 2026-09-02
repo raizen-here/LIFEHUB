@@ -1,10 +1,8 @@
 <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dark background -->
-  <rect width="192" height="192" fill="#101313"/>
-  
-  <!-- Accent circle -->
-  <circle cx="96" cy="96" r="67.2" fill="#c4f25d"/>
-  
-  <!-- L text -->
-  <text x="96" y="101" font-family="Georgia, serif" font-size="96" font-weight="bold" fill="#15200d" text-anchor="middle" dominant-baseline="middle">L</text>
+  <rect width="192" height="192" rx="40" fill="#F5F6FA"/>
+  <g fill="#111827">
+    <path d="M52 44h24v67h38v24H52z"/>
+    <path d="M90 74h24v17h17V74h24v74h-24v-28h-17v28H90z"/>
+  </g>
+  <rect x="131" y="49" width="15" height="15" rx="3" fill="#6366F1"/>
 </svg>
