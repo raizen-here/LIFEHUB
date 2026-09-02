@@ -1,0 +1,19 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background matching LIFEHUB theme -->
+  <rect width="1080" height="1920" fill="#101313"/>
+  
+  <!-- Accent circle centered on screen -->
+  <circle cx="540" cy="900" r="280" fill="#c4f25d" opacity="0.1"/>
+  
+  <!-- App icon circle -->
+  <circle cx="540" cy="850" r="120" fill="#c4f25d"/>
+  
+  <!-- L mark -->
+  <text x="540" y="920" font-family="Georgia, serif" font-size="220" font-weight="bold" fill="#15200d" text-anchor="middle" dominant-baseline="middle">L</text>
+  
+  <!-- App name -->
+  <text x="540" y="1200" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="60" font-weight="800" fill="#edf2ed" text-anchor="middle" letter-spacing="2">LIFEHUB</text>
+  
+  <!-- Tagline -->
+  <text x="540" y="1300" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="28" fill="#8f9d97" text-anchor="middle">Your personal command center</text>
+</svg>

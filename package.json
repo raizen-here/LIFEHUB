@@ -1,0 +1,34 @@
+{
+  "name": "lifehub",
+  "version": "1.0.0",
+  "description": "LIFEHUB - Your personal command center for everything you want to do and everything you've done.",
+  "main": "index.html",
+  "scripts": {
+    "serve": "serve .",
+    "build": "echo 'LIFEHUB is a static web app with no build step'",
+    "cap:build": "capacitor build",
+    "cap:sync": "capacitor sync",
+    "cap:open": "capacitor open android",
+    "android:build": "capacitor build android && cd android && ./gradlew assembleDebug"
+  },
+  "keywords": [
+    "task",
+    "productivity",
+    "todo",
+    "pwa",
+    "offline",
+    "indexeddb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/core": "^6.0.1",
+    "@capacitor/splash-screen": "^6.0.1",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.1",
+    "@capacitor/android": "^6.0.1"
+  }
+}

@@ -5,10 +5,28 @@ const routeCategory = { games: ['Game'], media: ['Movie','Series','Anime'], lear
 const filterSets = { games: ['All','Backlog','Playing','Paused','Completed','Dropped'], media: ['All','Movie','Series','Anime','Watching','Completed'], learning: ['All','Course','Book','Learning','Completed'], applications: ['All','Researching','Preparing','Ready to Apply','Applied','Interview','Accepted','Rejected','Deadline Passed'], projects: ['All','Idea','Planning','Building','Paused','Completed','Abandoned'], links: ['All','Cybersecurity','Coding','Education','Career','Scholarships','Tools','Gaming','Design','Entertainment','Other'], wishlist: ['All','Must Have','High','Medium','Low','Maybe','Want','Researching','Purchased','No Longer Want'], inbox: ['All','Inbox'] };
 const sortSets = { games: [['updatedAt','Recently played'],['createdAt','Recently added'],['rating','Rating'],['progress','Progress'],['title','Alphabetical']], media: [['createdAt','Recently added'],['rating','Rating'],['progress','Progress'],['title','Alphabetical']], learning: [['createdAt','Recently added'],['progress','Progress'],['title','Alphabetical']], applications: [['deadline','Deadline'],['createdAt','Recently added'],['status','Status']], projects: [['updatedAt','Recently updated'],['deadline','Deadline'],['progress','Progress'],['title','Alphabetical']], links: [['createdAt','Recently saved'],['title','Alphabetical'],['linkCategory','Category']], wishlist: [['priority','Priority'],['price','Price'],['createdAt','Recently added']] };
 
-export function createRouter(state, render) { window.addEventListener('hashchange', () => { state.route = location.hash.slice(1) || 'dashboard'; state.filter = 'All'; render(); }); }
+export function createRouter(state, render) {
+  window.addEventListener('hashchange', () => {
+    state.route = location.hash.slice(1) || 'dashboard';
+    state.filter = 'All';
+
+    // Close mobile navigation after selecting a page
+    document.body.classList.remove('nav-open');
+
+    render();
+  });
+}
 export function renderApp(state, actions) {
   const route = state.route; const label = navItems.find(([key]) => key === route)?.[2] || 'Dashboard';
-  document.querySelector('#section-title').textContent = label; document.querySelector('#section-kicker').textContent = route === 'dashboard' ? 'Workspace' : 'Library';
+  document.querySelector('#section-title').textContent = label;
+
+const sectionKicker = document.querySelector('#section-kicker');
+
+if (route === 'dashboard') {
+  sectionKicker.innerHTML = `<span>Workspace</span>`;
+} else {
+  sectionKicker.innerHTML = `<a href="#dashboard" class="workspace-link">Workspace</a>`;
+}
   document.querySelector('#primary-nav').innerHTML = navItems.map(([key, icon, text]) => `<a class="nav-item ${route === key ? 'active' : ''}" href="#${key}"><span>${icon}</span>${text}${key === 'inbox' && countInbox(state.items) ? `<b>${countInbox(state.items)}</b>` : ''}</a>`).join('');
   document.querySelector('#mobile-nav').innerHTML = navItems.slice(0, 5).map(([key, icon, text]) => `<a class="mobile-nav-item ${route === key ? 'active' : ''}" href="#${key}"><span>${icon}</span><small>${text}</small></a>`).join('');
   const page = route === 'dashboard' ? dashboard(state, actions) : route === 'completed' ? completed(state) : route === 'statistics' ? statistics(state) : route === 'settings' ? settings(state) : library(state, route);

@@ -4,3 +4,22 @@ node_modules/
 *.log
 .env
 .env.*
+
+# Android build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+android/*.iml
+android/.idea/
+android/local.properties
+android/.gradle/
+dist/
+www/
+
+# Capacitor generated files
+dist/
+.capacitor/
+
+# IDE
+.idea/
+*.iml

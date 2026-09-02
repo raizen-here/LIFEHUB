@@ -1,0 +1,24 @@
+{
+  "appId": "com.raizen.lifehub",
+  "appName": "LIFEHUB",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "autoHide": true,
+      "backgroundColor": "#101313",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "dark",
+      "backgroundColor": "#101313"
+    },
+    "App": {
+      "preventGoingBack": false
+    }
+  }
+}
