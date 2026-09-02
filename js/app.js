@@ -1,0 +1,82 @@
+import { database } from './database.js';
+import { createRouter, renderApp } from './ui-complete.js';
+import { renderMetadataFields } from './metadata-form.js';
+import { applyTheme, categories, categoryStatuses, metadataDefaults, normalizeItem, parseTags, routeByCategory, safeUrl, statuses, uid } from './utils.js';
+
+const state = { items: [], route: window.location.hash.slice(1) || 'dashboard', theme: localStorage.getItem('lifehub-theme') || 'dark' };
+
+async function boot() {
+	applyTheme(state.theme);
+	state.items = await database.getAll();
+	window.lifehubItems = state.items;
+	document.querySelector('#item-category').innerHTML = categories.map((category) => `<option>${category}</option>`).join('');
+	document.querySelector('#item-status').innerHTML = statuses.map((status) => `<option>${status}</option>`).join('');
+	document.querySelector('#item-category').addEventListener('change', () => renderMetadataFields(document.querySelector('#metadata-fields'), document.querySelector('#item-category').value));
+	renderMetadataFields(document.querySelector('#metadata-fields'), document.querySelector('#item-category').value);
+	createRouter(state, render);
+	document.querySelector('#global-add').addEventListener('click', () => openItemModal());
+	document.querySelector('#search-trigger').addEventListener('click', openSearch);
+	document.querySelector('#theme-toggle').addEventListener('click', toggleTheme);
+	document.querySelector('#profile-button').addEventListener('click', () => navigate('settings'));
+	document.querySelector('#mobile-menu').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+	document.querySelector('#item-progress').addEventListener('input', (event) => { document.querySelector('#progress-value').textContent = `${event.target.value}%`; });
+	document.querySelector('#item-form').addEventListener('submit', saveItem);
+	document.querySelector('#global-search').addEventListener('input', searchItems);
+	document.querySelector('#import-file').addEventListener('change', importBackup);
+	document.querySelectorAll('[data-modal-close]').forEach((button) => button.addEventListener('click', () => button.closest('dialog')?.close()));
+	document.addEventListener('keydown', handleShortcut);
+	if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+	const onboarding = document.querySelector('#onboarding-modal'); if (!localStorage.getItem('lifehub-onboarding-complete')) { onboarding.addEventListener('close', () => localStorage.setItem('lifehub-onboarding-complete', 'true'), { once: true }); onboarding.showModal(); }
+	render();
+}
+
+function render() { renderApp(state, { onNavigate: navigate, onAdd: openItemModal, onComplete: completeItem, onDelete: deleteItem, onEdit: editItem, onRequirement: updateRequirement, onClear: clearItems, onImport: () => document.querySelector('#import-file').click(), onTheme: setTheme, onExport: exportBackup, onExportCsv: exportCsv, onDemo: loadDemoData, onToast: toast }); }
+function navigate(route) { window.location.hash = route; document.body.classList.remove('nav-open'); render(); }
+
+function openItemModal(item = null) {
+	const form = document.querySelector('#item-form'); form.reset();
+	document.querySelector('#item-modal-title').textContent = item ? 'Edit item' : 'Add something new';
+	document.querySelector('#item-title').value = item?.title || '';
+	document.querySelector('#item-category').value = item?.category || 'Other';
+	document.querySelector('#item-status').value = item?.status || 'Inbox';
+	document.querySelector('#item-progress').value = item?.progress || 0;
+	document.querySelector('#progress-value').textContent = `${item?.progress || 0}%`;
+	document.querySelector('#item-url').value = item?.url || '';
+	document.querySelector('#item-notes').value = item?.notes || '';
+	document.querySelector('#item-tags').value = item?.tags?.join(', ') || '';
+	renderMetadataFields(document.querySelector('#metadata-fields'), document.querySelector('#item-category').value, item?.metadata || {});
+	document.querySelector('#item-modal').showModal();
+	form.dataset.editId = item?.id || '';
+	document.querySelector('#item-title').focus();
+}
+
+function updateMetadataFields(metadata = {}) { const category = document.querySelector('#item-category').value; const statusOptions = categoryStatuses[category] || statuses; const status = document.querySelector('#item-status'); const previousStatus = status.value; status.innerHTML = statusOptions.map((option) => `<option>${option}</option>`).join(''); status.value = statusOptions.includes(previousStatus) ? previousStatus : statusOptions[0]; const fields = { Game: [['platform', 'Platform'], ['genre', 'Genre'], ['completionType', 'Completion type', ['Main Story', 'Story + Extras', '100%', 'Multiplayer', 'Other']]], Movie: [['mediaType', 'Media type', ['Movie', 'Series', 'Anime']]], Series: [['mediaType', 'Media type', ['Series', 'Anime']], ['season', 'Season'], ['currentEpisode', 'Current episode'], ['totalEpisodes', 'Total episodes']], Anime: [['mediaType', 'Media type', ['Anime']], ['season', 'Season'], ['currentEpisode', 'Current episode'], ['totalEpisodes', 'Total episodes']], Book: [['source', 'Source / platform'], ['certification', 'Certification'], ['certificateUrl', 'Certificate URL']], Course: [['source', 'Source / platform'], ['certification', 'Certification'], ['certificateUrl', 'Certificate URL']], Application: [['organization', 'Organization'], ['deadline', 'Deadline', 'date'], ['requirements', 'Requirements (one per line)', 'textarea']], Project: [['description', 'Description', 'textarea'], ['technologies', 'Technologies'], ['deadline', 'Deadline', 'date'], ['githubUrl', 'GitHub URL'], ['demoUrl', 'Demo URL']], Link: [['linkCategory', 'Link category', ['Cybersecurity', 'Coding', 'Education', 'Career', 'Scholarships', 'Tools', 'Gaming', 'Design', 'Entertainment', 'Other']], ['description', 'Description', 'textarea'], ['whySaved', 'Why saved', 'textarea']], Wishlist: [['price', 'Estimated price'], ['priority', 'Priority', ['Must Have', 'High', 'Medium', 'Low', 'Maybe']], ['purchaseStatus', 'Purchase status', ['Want', 'Researching', 'Purchased', 'No Longer Want']]] }[category] || []; const current = { ...metadataDefaults[category], ...metadata }; document.querySelector('#metadata-fields').innerHTML = fields.map(([key, label, kind]) => { const value = Array.isArray(current[key]) ? current[key].map((entry) => entry.text || '').join('\n') : current[key] || ''; if (kind === 'textarea') return `<label class="field">${label}<textarea data-meta="${key}" rows="3">${escapeHtml(value)}</textarea></label>`; if (Array.isArray(kind)) return `<label class="field">${label}<select data-meta="${key}">${kind.map((option) => `<option ${current[key] === option ? 'selected' : ''}>${option}</option>`).join('')}</select></label>`; return `<label class="field">${label}<input data-meta="${key}" type="${kind === 'date' ? 'date' : 'text'}" value="${escapeHtml(value)}"></label>`; }).join(''); }
+
+async function saveItem(event) {
+	if (event.submitter?.value !== 'default') return;
+	event.preventDefault();
+	const form = new FormData(event.currentTarget); const old = state.items.find((item) => item.id === event.currentTarget.dataset.editId);
+	const rawUrl = form.get('url').trim(); if (rawUrl && !safeUrl(rawUrl)) { document.querySelector('#item-url').setCustomValidity('Enter a valid http or https URL.'); document.querySelector('#item-url').reportValidity(); return; } document.querySelector('#item-url').setCustomValidity(''); const status = form.get('status'); const metadata = { ...(old?.metadata || {}), ...Object.fromEntries([...document.querySelectorAll('[data-meta]')].map((field) => [field.dataset.meta, field.value.trim()])) }; if (typeof metadata.requirements === 'string') metadata.requirements = metadata.requirements.split(/\r?\n/).map((text) => text.trim()).filter(Boolean).map((text, index) => old?.metadata?.requirements?.[index] || ({ id: uid(), text, completed: false })); const item = normalizeItem({ ...(old || { id: uid(), createdAt: Date.now() }), title: form.get('title').trim(), category: form.get('category'), status, progress: Number(form.get('progress')), url: safeUrl(rawUrl), notes: form.get('notes').trim(), tags: parseTags(form.get('tags')), metadata, updatedAt: Date.now(), completedAt: status === 'Completed' ? (old?.completedAt || Date.now()) : null });
+	if (item.category === 'Application') { try { item.metadata.requirements = JSON.parse(document.querySelector('[data-meta="requirements"]')?.value || '[]'); } catch { item.metadata.requirements = []; } }
+	await database.put(item); state.items = await database.getAll(); window.lifehubItems = state.items; document.querySelector('#item-modal').close(); toast(old ? 'Item updated' : 'Added to LIFEHUB'); render();
+}
+
+async function completeItem(id) { const item = state.items.find((entry) => entry.id === id); if (!item) return; item.status = 'Completed'; item.progress = 100; item.completedAt = Date.now(); item.updatedAt = Date.now(); await database.put(item); state.items = await database.getAll(); window.lifehubItems = state.items; toast('✓ Completed'); render(); }
+async function deleteItem(id) { if (!window.confirm('Delete this item permanently?')) return; await database.remove(id); state.items = await database.getAll(); window.lifehubItems = state.items; toast('Item deleted'); render(); }
+async function clearItems() { if (!window.confirm('Clear all LIFEHUB data? This cannot be undone.')) return; await database.clear(); state.items = []; window.lifehubItems = state.items; toast('All data cleared'); render(); }
+function editItem(id) { openItemModal(state.items.find((item) => item.id === id)); }
+function openSearch() { document.querySelector('#search-modal').showModal(); document.querySelector('#global-search').focus(); }
+function searchItems(event) { const query = event.target.value.toLowerCase().trim(); const results = state.items.filter((item) => JSON.stringify(item).toLowerCase().includes(query)).slice(0, 12); document.querySelector('#search-results').innerHTML = results.length ? results.map((item) => `<button class="search-result" data-search-id="${item.id}" type="button"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.category)} · ${escapeHtml(item.status)}</span></button>`).join('') : '<p class="empty-copy">No matching items.</p>'; document.querySelectorAll('[data-search-id]').forEach((button) => button.addEventListener('click', () => { const item = state.items.find((entry) => entry.id === button.dataset.searchId); document.querySelector('#search-modal').close(); navigate(routeByCategory[item?.category] || 'dashboard'); })); }
+function toggleTheme() { state.theme = state.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('lifehub-theme', state.theme); applyTheme(state.theme); render(); }
+function setTheme(theme) { state.theme = theme; localStorage.setItem('lifehub-theme', theme); applyTheme(theme); render(); }
+async function updateRequirement(itemId, requirementId, completed) { const item = state.items.find((entry) => entry.id === itemId); const requirement = item?.metadata?.requirements?.find((entry) => entry.id === requirementId); if (!requirement) return; requirement.completed = completed; item.updatedAt = Date.now(); await database.put(item); state.items = await database.getAll(); window.lifehubItems = state.items; render(); }
+function downloadFile(name, content, type) { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type })); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
+function exportBackup() { downloadFile(`lifehub-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'LIFEHUB', schemaVersion: 1, exportedAt: new Date().toISOString(), settings: { theme: state.theme }, items: state.items }, null, 2), 'application/json'); toast('Backup exported'); }
+function exportCsv() { const columns = ['title', 'category', 'status', 'progress', 'createdAt', 'completedAt', 'url', 'notes']; const quote = (value) => `"${String(value ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`; downloadFile(`lifehub-items-${new Date().toISOString().slice(0, 10)}.csv`, [columns, ...state.items.map((item) => columns.map((column) => item[column] ?? ''))].map((row) => row.map(quote).join(',')).join('\n'), 'text/csv;charset=utf-8'); toast('CSV exported'); }
+async function loadDemoData() { if (!window.confirm('Add LIFEHUB demo records to your local data?')) return; const now = Date.now(); const demo = [['Hades','Game','Playing',42,{ platform: 'PC', genre: 'Roguelike' }],['The Witcher 3','Game','Backlog',0,{ platform: 'PC', genre: 'RPG' }],['Celeste','Game','Completed',100,{ platform: 'Switch', genre: 'Platformer' }],['Arrival','Movie','Completed',100,{ mediaType: 'Movie' }],['Arcane','Series','Watching',55,{ mediaType: 'Series', season: '1', currentEpisode: '5', totalEpisodes: '9' }],['Frieren','Anime','Watchlist',0,{ mediaType: 'Anime' }],['JavaScript Algorithms','Course','Learning',35,{ source: 'freeCodeCamp' }],['Atomic Habits','Book','Completed',100,{ source: 'Library' }],['Scholarship application','Application','Preparing',20,{ organization: 'LIFE Foundation', deadline: new Date(now + 14 * 86400000).toISOString().slice(0, 10), requirements: [{ id: uid(), text: 'Resume', completed: true }, { id: uid(), text: 'Photograph', completed: false }, { id: uid(), text: 'Portfolio', completed: false }] }],['Internship application','Application','Accepted',100,{ organization: 'Studio North' }],['LIFEHUB v2','Project','Building',64,{ technologies: 'HTML, CSS, JavaScript', deadline: new Date(now + 30 * 86400000).toISOString().slice(0, 10) }],['Reading tracker','Project','Completed',100,{ technologies: 'JavaScript' }],['MDN Web Docs','Link','Planned',0,{ linkCategory: 'Coding', description: 'Reference documentation', whySaved: 'Reliable web platform reference' }],['New headphones','Wishlist','Planned',0,{ price: '120', priority: 'High', purchaseStatus: 'Want' }]]; for (const [title, category, status, progress, metadata] of demo) await database.put(normalizeItem({ id: uid(), title, category, status, progress, metadata, createdAt: now - Math.floor(Math.random() * 20) * 86400000, updatedAt: now })); state.items = await database.getAll(); window.lifehubItems = state.items; toast('Demo data loaded'); render(); }
+async function importBackup(event) { const file = event.target.files[0]; event.target.value = ''; if (!file) return; try { const payload = JSON.parse(await file.text()); if (payload.schemaVersion !== 1 && payload.version !== 1) throw new Error('Unsupported backup schema.'); if (!Array.isArray(payload.items) || payload.items.some((item) => !item || typeof item.title !== 'string' || !item.title.trim())) throw new Error('This file does not contain valid LIFEHUB items.'); if (!window.confirm('Replace your current LIFEHUB data with this backup?')) return; await database.clear(); for (const item of payload.items) await database.put(normalizeItem(item)); state.items = await database.getAll(); window.lifehubItems = state.items; toast(`Imported ${state.items.length} items`); render(); } catch (error) { toast(error.message === 'Unsupported backup schema.' ? error.message : 'This file does not look like a LIFEHUB backup.'); } }
+function handleShortcut(event) { if (event.target.matches('input, textarea, select')) return; if (event.key === '/') { event.preventDefault(); openSearch(); } if (event.key.toLowerCase() === 'n') openItemModal(); if (event.key === 'Escape') document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close()); }
+function toast(message) { const region = document.querySelector('#toast-region'); const element = document.createElement('div'); element.className = 'toast'; element.textContent = message; region.append(element); window.setTimeout(() => element.remove(), 2600); }
+function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character])); }
+
+boot().catch((error) => { console.error(error); document.querySelector('#page-content').innerHTML = '<div class="error-state"><h2>Something went wrong while loading.</h2><p>Your existing data has not been removed. Refresh to try again.</p></div>'; });

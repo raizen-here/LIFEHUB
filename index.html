@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101313">
+  <meta name="description" content="LIFEHUB is your personal command center for everything you want to do and everything you've done.">
+  <title>LIFEHUB | Your personal command center</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#dashboard" data-route="dashboard" aria-label="LIFEHUB dashboard">
+        <span class="brand-mark">L</span><span>LIFEHUB</span>
+      </a>
+      <div class="sidebar-section">
+        <p class="eyebrow">Workspace</p>
+        <nav class="nav-list" id="primary-nav"></nav>
+      </div>
+      <div class="sidebar-footer">
+        <button class="user-chip" id="profile-button" type="button" aria-label="Open settings">
+          <span class="avatar">R</span><span><strong id="profile-name">Your space</strong><small>Personal workspace</small></span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu icon-button" id="mobile-menu" type="button" aria-label="Open navigation">☰</button>
+        <div class="breadcrumbs"><span id="section-kicker">Workspace</span><span>/</span><strong id="section-title">Dashboard</strong></div>
+        <div class="topbar-actions">
+          <button class="search-trigger" id="search-trigger" type="button"><span>⌕</span><span>Search anything</span><kbd>/</kbd></button>
+          <button class="icon-button" id="theme-toggle" type="button" aria-label="Toggle theme">◐</button>
+          <button class="add-button" id="global-add" type="button"><span>＋</span> Add</button>
+        </div>
+      </header>
+      <div id="page-content" class="page-content" tabindex="-1"></div>
+    </main>
+  </div>
+
+  <div class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation"></div>
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <dialog class="modal" id="item-modal" aria-labelledby="item-modal-title">
+    <form id="item-form" method="dialog">
+      <div class="modal-header"><div><p class="eyebrow">Universal capture</p><h2 id="item-modal-title">Add something new</h2></div><button class="icon-button" data-modal-close type="button" aria-label="Close">×</button></div>
+      <div class="form-grid">
+        <label class="field field-wide">Title<input id="item-title" name="title" required maxlength="160" placeholder="What do you want to remember?"></label>
+        <label class="field">Category<select id="item-category" name="category"></select></label>
+        <label class="field">Status<select id="item-status" name="status"></select></label>
+        <label class="field">Progress <span class="range-value" id="progress-value">0%</span><input id="item-progress" name="progress" type="range" min="0" max="100" value="0"></label>
+        <label class="field field-wide">Link <span class="field-hint">optional</span><input id="item-url" name="url" type="url" placeholder="https://..."></label>
+        <label class="field field-wide">Notes <span class="field-hint">optional</span><textarea id="item-notes" name="notes" rows="3" placeholder="A little context helps future you."></textarea></label>
+        <label class="field field-wide">Tags <span class="field-hint">comma separated</span><input id="item-tags" name="tags" placeholder="important, later"></label>
+        <div class="field field-wide" id="metadata-fields"></div>
+      </div>
+      <div class="modal-actions"><button class="button secondary" data-modal-close type="button">Cancel</button><button class="button primary" id="save-item" value="default" type="submit">Save item</button></div>
+    </form>
+  </dialog>
+
+  <input id="import-file" type="file" accept="application/json" hidden>
+  <dialog class="modal compact-modal" id="onboarding-modal" aria-labelledby="onboarding-title">
+    <form method="dialog"><div class="modal-header"><div><p class="eyebrow">A small beginning</p><h2 id="onboarding-title">Make space for what matters.</h2></div><button class="icon-button" data-modal-close type="button" aria-label="Skip onboarding">×</button></div><ol class="onboarding-list"><li>Capture anything.</li><li>Organize it later.</li><li>Track your progress.</li><li>Complete things.</li><li>LIFEHUB remembers your achievements.</li></ol><div class="modal-actions"><button class="button secondary" data-modal-close type="button">Skip</button><button class="button primary" id="start-lifehub" value="start" type="submit">Start using LIFEHUB</button></div></form>
+  </dialog>
+
+  <dialog class="modal compact-modal" id="search-modal" aria-labelledby="search-title">
+    <form method="dialog"><div class="modal-header"><div><p class="eyebrow">Find anything</p><h2 id="search-title">Search LIFEHUB</h2></div><button class="icon-button" data-modal-close type="button" aria-label="Close">×</button></div><input class="search-input" id="global-search" type="search" placeholder="Titles, notes, tags, categories..."><div id="search-results" class="search-results"></div></form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

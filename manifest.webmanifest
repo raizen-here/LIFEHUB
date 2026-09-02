@@ -1,0 +1,9 @@
+{
+  "name": "LIFEHUB",
+  "short_name": "LIFEHUB",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#101313",
+  "theme_color": "#101313",
+  "description": "Everything you want to do. Everything you've done."
+}
